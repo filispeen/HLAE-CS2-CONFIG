@@ -1,15 +1,16 @@
 @echo off
 setlocal enableextensions enabledelayedexpansion
-set "version=1.1.0"
-set "ffmpeg_path=none"
-set "winget_path=none"
+set "version=1.1.5"
 set "check_updates=none"
+set "winget_path=none"
+set "codec=none"
 
 if exist vars (
   set line=1
   for /f "delims=" %%L in (vars) do (
     if "!line!"=="1" set "check_updates=%%L"
     if "!line!"=="2" set "ffmpeg_path=%%L"
+    if "!line!"=="3" set "codec=%%L"
     set /a line+=1
   )
 if not exist !ffmpeg_path! ( 
@@ -17,7 +18,6 @@ if not exist !ffmpeg_path! (
   set "ffmpeg_path=none" 
   )
 )
-
 
 REM Update checker
 if "!check_updates!"=="none" (
@@ -51,19 +51,15 @@ if "!check_updates!"=="Y" (
   )
 )
 
-
 rem Check if ffmpeg is installed
 if "!ffmpeg_path!"=="none" (
   if exist "%ProgramFiles(x86)%\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" (
     set "ffmpeg_path=%ProgramFiles(x86)%\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe"
   )
-  
   if "!ffmpeg_path!"=="none" if exist "%ProgramFiles%\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" (
     set "ffmpeg_path=%ProgramFiles%\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe"
   )
-
   if "!ffmpeg_path!"=="none" ( for /f "delims=" %%A in ('where ffmpeg') do ( set "ffmpeg_path=%%A" ) )
-
   if "!ffmpeg_path!"=="none" (
     powershell -c "(New-Object Media.SoundPlayer '%windir%\Media\Windows Foreground.wav').PlaySync()"
     set /p "QA=Ffmpeg not found. Have you installed ffmpeg in HLAE installer? (Y/N) (default: Y): "
@@ -167,9 +163,36 @@ if "!ffmpeg_path!"=="none" (
   )
 )
 
+cls
+rem first codec setup
+if "!codec!"=="none" (
+  echo One time quick setup:
+  echo Which codec do you want to use?
+  echo 1. hevc // recommended and default
+  echo 2. h264 // not that eficient like hevc and av1, but compatible with everything, but doesn't matter if upload video to youtube just use hevc
+  echo 3. av1 // recommended if you have a 40 or above series GPU and don't recommended on CPU
+  set /p "codec=:"
+  if "!codec!"=="" set "codec=hevc" 
+  if "!codec!"=="1" ( set "codec=hevc" )
+  if "!codec!"=="2" ( set "codec=h264" )
+  if "!codec!"=="3" ( set "codec=av1" )
+  echo Which GPU company are you using?
+  echo 1. NVIDIA // nvenc codec
+  echo 2. AMD // amf codec
+  echo 3. Intel // qsv codec
+  echo 4. don't have a GPU // cpu codec, default
+  set /p "HW=:"
+  if /i "!HW!"=="" set "HW=4"
+  if "!HW!"=="1" ( set "HW=nvenc" )
+  if "!HW!"=="2" ( set "HW=amf" )
+  if "!HW!"=="3" ( set "HW=qsv" )
+  if "!HW!" NEQ "4" ( set "codec=!codec!_!HW!" )
+)
+
 if "!ffmpeg_path!" NEQ "!ffmpeg_OLD_path!" ( del vars )
 echo %check_updates% >> vars
 echo %ffmpeg_path% >> vars
+echo %codec% >> vars
 
 cls
 REM Video and audio merger
@@ -194,7 +217,7 @@ for %%F in (%*) do ( echo Encoding: %%F
   rem   echo Audio file not found in %%F. Skipping folder.
   rem   timeout /t 1 > nul
   rem )
-  "%ffmpeg_path%" -y -hide_banner -hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -vcodec hevc_nvenc -map 0:v:0 -map 1:a:0 -b:a 192k -preset p5 -rc cbr -b:v 80M -maxrate 80M -minrate 70M -bufsize 80M -pix_fmt yuv444p "%%F\merged.mp4"
+  "%ffmpeg_path%" -y -hide_banner -hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset p5 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M -pix_fmt yuv444p "%%F\merged.mp4"
   for %%A in ("%%F") do (
     set "foldername=%%~nxA"
     rem set "folderpath=%%~dpA"
