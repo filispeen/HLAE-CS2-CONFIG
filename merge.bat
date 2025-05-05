@@ -1,6 +1,6 @@
 @echo off
 setlocal enableextensions enabledelayedexpansion
-set "version=1.1.6"
+set "version=1.1.7"
 set "check_updates=none"
 set "winget_path=none"
 set "codec=none"
