@@ -1,5 +1,5 @@
-@echo off
-setlocal enabledelayedexpansion
+rem @echo off
+setlocal enableextensions enabledelayedexpansion
 set "version=1.1.0"
 set "ffmpeg_path=none"
 set "winget_path=none"
@@ -174,35 +174,27 @@ echo %ffmpeg_path% >> vars
 cls
 REM Video and audio merger
 if "%~1"=="" (
-    echo You NEED to drag and drop folder with your video and audio files into batch file.
-    powershell -c "(New-Object Media.SoundPlayer '%windir%\Media\Windows Foreground.wav').PlaySync()"
-    cls
-    echo You NEED to drag and drop folder with your video and audio files into batch file. Press any button to exit.
-    pause > nul
-    exit
+  echo You NEED to drag and drop folder with your video and audio files into batch file. Press any button to exit.
+  powershell -c "(New-Object Media.SoundPlayer '%windir%\Media\Windows Foreground.wav').PlaySync()"
+  pause > nul
+  exit /b
 )
 for %%F in (%*) do ( echo Encoding: %%F
-  if "%%~nxA"=="video.mp4" if "%%~nxA"=="audio.wav" (
-    echo Attually, you are not supposed to drag and drop video or audio files. You need to drag and drop folder with your video and audio files into batch file. Skipping folder.
-    timeout /t 1 > nul
-    goto :continue
-  )
-  if not exist "%%F\video.wav" if not exist "%%F\video.mp4" (
-    echo Video and audio files not found in %%F... Are you sirious? Skipping folder.
-    timeout /t 1 > nul
-    goto :continue
-  )
-  if not exist "%%F\video.mp4" (
-    echo Video file not found in %%F. Skipping folder.
-    timeout /t 1 > nul
-    goto :continue
-  )
-  if not exist "%%F\audio.wav" (
-    echo Audio file not found in %%F. Skipping folder.
-    timeout /t 1 > nul
-    goto :continue
-  )
-  ffmpeg -y -hide_banner -hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -vcodec hevc_nvenc -map 0:v:0 -map 1:a:0 -b:a 192k -preset p5 -rc cbr -b:v 80M -maxrate 80M -minrate 70M -bufsize 80M -pix_fmt yuv444p "%%F\merged.mp4"
+  rem Check if %%F is actually a folder
+  rem if not exist "%%F\" (
+  rem   echo You are supposed to drag and drop a folder, not files like video.mp4 or audio.wav.
+  rem   timeout /t 1 > nul
+  rem )
+  rem rem Check if required files exist
+  rem if not exist "%%F\video.mp4" (
+  rem   echo Video file not found in %%F. Skipping folder.
+  rem   timeout /t 1 > nul
+  rem )
+  rem if not exist "%%F\audio.wav" (
+  rem   echo Audio file not found in %%F. Skipping folder.
+  rem   timeout /t 1 > nul
+  rem )
+  "%ffmpeg_path%" -y -hide_banner -hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -vcodec hevc_nvenc -map 0:v:0 -map 1:a:0 -b:a 192k -preset p5 -rc cbr -b:v 80M -maxrate 80M -minrate 70M -bufsize 80M -pix_fmt yuv444p "%%F\merged.mp4"
   for %%A in ("%%F") do (
     set "foldername=%%~nxA"
     rem set "folderpath=%%~dpA"
@@ -212,7 +204,6 @@ for %%F in (%*) do ( echo Encoding: %%F
       ren "%%F" "!newname!"
     )
   )
-  :continue
 )
 endlocal
 echo Everything encoded! Press any button.
