@@ -1,4 +1,4 @@
-rem @echo off
+@echo off
 setlocal enableextensions enabledelayedexpansion
 set "version=1.1.0"
 set "ffmpeg_path=none"
