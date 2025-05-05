@@ -26,9 +26,11 @@ if "!check_updates!"=="none" (
   if /i "!check_updates!"=="" set "check_updates=Y"
   if /i "!check_updates!"=="Y" ( set "check_updates=Y" )
   if /i "!check_updates!"=="N" ( set "check_updates=N" )
+  if /i "!check_updates!"=="y" ( set "check_updates=Y" )
+  if /i "!check_updates!"=="n" ( set "check_updates=N" )
 )
 
-if "!check_updates!"=="Y" if "!check_updates!"=="y" (
+if "!check_updates!"=="Y" (
   for /f "delims=" %%A in ('curl -s https://raw.githubusercontent.com/filispeen/HLAE-CS2-CONFIG/refs/heads/main/merge.bat ^| findstr /n "^" ^| findstr "^3:"') do ( set "line=%%A" )
   for /f "tokens=2 delims==" %%A in ("!line!") do (
     set "remote_version=%%~A"
