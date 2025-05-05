@@ -1,6 +1,6 @@
 @echo off
 setlocal enableextensions enabledelayedexpansion
-set "version=1.1.5"
+set "version=1.1.6"
 set "check_updates=none"
 set "winget_path=none"
 set "codec=none"
@@ -217,7 +217,7 @@ for %%F in (%*) do ( echo Encoding: %%F
   rem   echo Audio file not found in %%F. Skipping folder.
   rem   timeout /t 1 > nul
   rem )
-  "%ffmpeg_path%" -y -hide_banner -hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset p5 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M -pix_fmt yuv444p "%%F\merged.mp4"
+  "%ffmpeg_path%" -y -hide_banner -hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset p5 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M -pix_fmt yuv420p "%%F\merged.mp4"
   for %%A in ("%%F") do (
     set "foldername=%%~nxA"
     rem set "folderpath=%%~dpA"
