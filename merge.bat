@@ -4,6 +4,7 @@ set "version=1.1.7"
 set "check_updates=none"
 set "winget_path=none"
 set "codec=none"
+set "FULL_RGB_RANGE=none"
 
 if exist vars (
   set line=1
@@ -11,6 +12,7 @@ if exist vars (
     if "!line!"=="1" set "check_updates=%%L"
     if "!line!"=="2" set "ffmpeg_path=%%L"
     if "!line!"=="3" set "codec=%%L"
+    if "!line!"=="4" set "FULL_RGB_RANGE=%%L"
     set /a line+=1
   )
 if not exist !ffmpeg_path! ( 
@@ -26,8 +28,6 @@ if "!check_updates!"=="none" (
   if /i "!check_updates!"=="" set "check_updates=Y"
   if /i "!check_updates!"=="Y" ( set "check_updates=Y" )
   if /i "!check_updates!"=="N" ( set "check_updates=N" )
-  if /i "!check_updates!"=="y" ( set "check_updates=Y" )
-  if /i "!check_updates!"=="n" ( set "check_updates=N" )
 )
 
 if "!check_updates!"=="Y" (
@@ -191,10 +191,19 @@ if "!codec!"=="none" (
   if "!HW!" NEQ "4" ( set "codec=!codec!_!HW!" )
 )
 
+if "!FULL_RGB_RANGE!"=="none" (
+  echo "Do you want to use FULL RGB RANGE(yuv444p)? (Y/N) (default: Y):
+  set /p "FULL_RGB_RANGE=:"
+  if /i "!FULL_RGB_RANGE!"=="" set "FULL_RGB_RANGE=Y"
+  if /i "!FULL_RGB_RANGE!"=="Y" ( set "FULL_RGB_RANGE=yuv444p" )
+  if /i "!FULL_RGB_RANGE!"=="N" ( set "FULL_RGB_RANGE=yuv420p" )
+)
+
 if "!ffmpeg_path!" NEQ "!ffmpeg_OLD_path!" ( del vars )
 echo %check_updates% >> vars
 echo %ffmpeg_path% >> vars
 echo %codec% >> vars
+echo %FULL_RGB_RANGE% >> vars
 
 cls
 REM Video and audio merger
@@ -219,7 +228,7 @@ for %%F in (%*) do ( echo Encoding: %%F
   rem   echo Audio file not found in %%F. Skipping folder.
   rem   timeout /t 1 > nul
   rem )
-  "%ffmpeg_path%" -y -hide_banner -hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset p5 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M -pix_fmt yuv420p "%%F\merged.mp4"
+  "%ffmpeg_path%" -y -hide_banner -hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset p5 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M -pix_fmt %FULL_RGB_RANGE% "%%F\merged.mp4"
   for %%A in ("%%F") do (
     set "foldername=%%~nxA"
     rem set "folderpath=%%~dpA"
