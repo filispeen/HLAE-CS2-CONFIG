@@ -1,6 +1,6 @@
 @echo off
 setlocal enableextensions enabledelayedexpansion
-set "version=1.1.7"
+set "version=1.1.8"
 set "check_updates=none"
 set "winget_path=none"
 set "codec=none"
@@ -28,6 +28,8 @@ if "!check_updates!"=="none" (
   if /i "!check_updates!"=="" set "check_updates=Y"
   if /i "!check_updates!"=="Y" ( set "check_updates=Y" )
   if /i "!check_updates!"=="N" ( set "check_updates=N" )
+  if /i "!check_updates!"=="y" ( set "check_updates=Y" )
+  if /i "!check_updates!"=="n" ( set "check_updates=N" )
 )
 
 if "!check_updates!"=="Y" (
@@ -66,6 +68,8 @@ if "!ffmpeg_path!"=="none" (
     powershell -c "(New-Object Media.SoundPlayer '%windir%\Media\Windows Foreground.wav').PlaySync()"
     set /p "QA=Ffmpeg not found. Have you installed ffmpeg in HLAE installer? (Y/N) (default: Y): "
     if /i "!QA!"=="" set "QA=Y"
+    if /i "!QA!"=="y" set "QA=Y"
+    if /i "!QA!"=="n" set "QA=N"
     if /i "!QA!"=="Y" (
       set /p "QA=Have you installed ffmpeg in custom path? (Y/N) (default: Y): "
       if /i "!QA!"=="" set "QA=Y"
@@ -84,6 +88,8 @@ if "!ffmpeg_path!"=="none" (
         ) else (
             set /p "QA=Do you want to auto install ffmpeg? (Y/N) (default: Y): "
             if /i "!QA!"=="" set "QA=Y"
+            if /i "!QA!"=="y" set "QA=Y"
+            if /i "!QA!"=="n" set "QA=N"
             if /i "!QA!"=="Y" (
               for /f "delims=" %%A in ('where winget') do ( set "winget_path=%%A" )
               if "!winget_path!"=="none" (
@@ -106,6 +112,8 @@ if "!ffmpeg_path!"=="none" (
       if /i "!QA!"=="N" (
         set /p "QA=Do you want to auto install ffmpeg? (Y/N) (default: Y): "
         if /i "!QA!"=="" set "QA=Y"
+        if /i "!QA!"=="y" set "QA=Y"
+        if /i "!QA!"=="n" set "QA=N"
         if /i "!QA!"=="Y" (
           for /f "delims=" %%A in ('where winget') do ( set "winget_path=%%A")
           if "!winget_path!"=="none" (
@@ -135,6 +143,8 @@ if "!ffmpeg_path!"=="none" (
     if /i "!QA!"=="N" (
       set /p "QA=Do you want to auto install ffmpeg? (Y/N) (default: Y): "
         if /i "!QA!"=="" set "QA=Y"
+        if /i "!QA!"=="y" set "QA=Y"
+        if /i "!QA!"=="n" set "QA=N"
         if /i "!QA!"=="Y" (
           for /f "delims=" %%A in ('where winget') do ( set "winget_path=%%A")
           if "!winget_path!"=="none" (
@@ -194,9 +204,11 @@ if "!codec!"=="none" (
 if "!RGB_RANGE!"=="none" (
   echo "Do you want to use FULL RGB RANGE(yuv444p)? (Y/N) (default: Y):
   set /p "RGB_RANGE=:"
-  if /i "!RGB_RANGE!"=="" set "FRGB_RANGE=Y"
+  if /i "!RGB_RANGE!"=="" set "RGB_RANGE=Y"
   if /i "!RGB_RANGE!"=="Y" ( set "RGB_RANGE=yuv444p" )
   if /i "!RGB_RANGE!"=="N" ( set "RGB_RANGE=yuv420p" )
+  if /i "!RGB_RANGE!"=="y" ( set "RGB_RANGE=yuv444p" )
+  if /i "!RGB_RANGE!"=="n" ( set "RGB_RANGE=yuv420p" )
 )
 
 if "!ffmpeg_path!" NEQ "!ffmpeg_OLD_path!" ( del vars )
