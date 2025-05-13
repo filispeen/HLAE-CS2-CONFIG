@@ -1,6 +1,6 @@
 @echo off
 setlocal enableextensions enabledelayedexpansion
-set "version=1.1.8"
+set "version=1.1.9"
 set "check_updates=none"
 set "winget_path=none"
 set "codec=none"
@@ -15,9 +15,9 @@ if exist vars (
     if "!line!"=="4" set "RGB_RANGE=%%L"
     set /a line+=1
   )
-if not exist !ffmpeg_path! ( 
-  set "ffmpeg_OLD_path=!ffmpeg_path!" 
-  set "ffmpeg_path=none" 
+  if not exist !ffmpeg_path! ( 
+    set "ffmpeg_OLD_path=!ffmpeg_path!" 
+    set "ffmpeg_path=none" 
   )
 )
 
@@ -217,6 +217,8 @@ echo %ffmpeg_path% >> vars
 echo %codec% >> vars
 echo %RGB_RANGE% >> vars
 
+if not exist merged_movies mkdir merged_movies
+
 cls
 REM Video and audio merger
 if "%~1"=="" (
@@ -226,30 +228,8 @@ if "%~1"=="" (
   exit /b
 )
 for %%F in (%*) do ( echo Encoding: %%F
-  rem Check if %%F is actually a folder
-  rem if not exist "%%F\" (
-  rem   echo You are supposed to drag and drop a folder, not files like video.mp4 or audio.wav.
-  rem   timeout /t 1 > nul
-  rem )
-  rem rem Check if required files exist
-  rem if not exist "%%F\video.mp4" (
-  rem   echo Video file not found in %%F. Skipping folder.
-  rem   timeout /t 1 > nul
-  rem )
-  rem if not exist "%%F\audio.wav" (
-  rem   echo Audio file not found in %%F. Skipping folder.
-  rem   timeout /t 1 > nul
-  rem )
-  "%ffmpeg_path%" -y -hide_banner -hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset p5 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M -pix_fmt %RGB_RANGE% "%%F\merged.mp4"
-  for %%A in ("%%F") do (
-    set "foldername=%%~nxA"
-    rem set "folderpath=%%~dpA"
-    set "suffix=!foldername:~-7!"
-    if /I not "!suffix!"=="_merged" (
-      set "newname=!foldername!_merged"
-      ren "%%F" "!newname!"
-    )
-  )
+  for %%A in ("%%F") do set "foldername=%%~nxA"
+  "%ffmpeg_path%" -y -hide_banner -hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset p5 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\!foldername!.mp4"
 )
 endlocal
 echo Everything encoded! Press any button.
