@@ -257,4 +257,4 @@ endlocal
 echo Everything encoded! Press any button.
 powershell -c "(New-Object Media.SoundPlayer '%windir%\Media\Windows Notify System Generic.wav').PlaySync()"
 pause > nul
-exit
+exit /b
