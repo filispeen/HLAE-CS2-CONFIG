@@ -1,6 +1,6 @@
 @echo off
 setlocal enableextensions enabledelayedexpansion
-set "version=1.1.9"
+set "version=1.2.0"
 set "check_updates=none"
 set "winget_path=none"
 set "codec=none"
@@ -198,7 +198,11 @@ if "!codec!"=="none" (
   if "!HW!"=="1" ( set "HW=nvenc" )
   if "!HW!"=="2" ( set "HW=amf" )
   if "!HW!"=="3" ( set "HW=qsv" )
-  if "!HW!" NEQ "4" ( set "codec=!codec!_!HW!" )
+  if "!HW!"=="4" ( if "!codec!"=="av1" ( 
+      set "codec=libsvtav1" 
+      set "RGB_RANGE=yuv420p"
+    ) 
+  ) else ( if "!HW!" NEQ 4 ( set "codec=!codec!_!HW!" ) else ( set "codec=!codec!" ) )
 )
 
 if "!RGB_RANGE!"=="none" (
@@ -221,15 +225,33 @@ if not exist merged_movies mkdir merged_movies
 
 cls
 REM Video and audio merger
-if "%~1"=="" (
+if "%*"=="" (
   echo You NEED to drag and drop folder with your video and audio files into batch file. Press any button to exit.
   powershell -c "(New-Object Media.SoundPlayer '%windir%\Media\Windows Foreground.wav').PlaySync()"
   pause > nul
   exit /b
 )
 for %%F in (%*) do ( echo Encoding: %%F
+  if %%F=="clear_vars" (
+    del vars
+    echo Variables cleared. Press any button to exit.
+    powershell -c "(New-Object Media.SoundPlayer '%windir%\Media\Windows Foreground.wav').PlaySync()"
+    pause > nul
+    exit /b
+  )
   for %%A in ("%%F") do set "foldername=%%~nxA"
-  "%ffmpeg_path%" -y -hide_banner -hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset p5 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\!foldername!.mp4"
+  if "!codec!"=="libsvtav1" ("%ffmpeg_path%" -y -hide_banner -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset 6 -b:v 10M -maxrate 10M -bufsize 10M "%%F\..\merged_movies\!foldername!.mp4"
+  ) else if "!codec!"=="hevc_nvenc" if "!codec!"=="h264_nvenc" (
+    "%ffmpeg_path%" -y -hide_banner -hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset p5 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M "%%F\..\merged_movies\!foldername!.mp4"
+  ) else if "!codec!"=="hevc_amf" if "!codec!"=="h264_amf" (
+    "%ffmpeg_path%" -y -hide_banner -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset 5 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M "%%F\..\merged_movies\!foldername!.mp4"
+  ) else if "!codec!"=="hevc_qsv" if "!codec!"=="h264_qsv" (
+    "%ffmpeg_path%" -y -hide_banner -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset 4 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M "%%F\..\merged_movies\!foldername!.mp4"
+  ) else if "!codec!"=="hevc" if "!codec!"=="h264" (
+    "%ffmpeg_path%" -y -hide_banner -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset 5 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M "%%F\..\merged_movies\!foldername!.mp4"
+  ) else (
+    "%ffmpeg_path%" -y -hide_banner -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset 5 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M "%%F\..\merged_movies\!foldername!.mp4"
+  )
 )
 endlocal
 echo Everything encoded! Press any button.
