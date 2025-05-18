@@ -1,29 +1,36 @@
 @echo off
 setlocal enableextensions enabledelayedexpansion
-set "version=1.2.0"
+set "version=1.2.2"
 set "check_updates=none"
-set "winget_path=none"
 set "codec=none"
 set "RGB_RANGE=none"
+set "ffmpeg_path=none"
+set "inputs=none"
+set "bitrate_params=-b:v 80M -maxrate 81M -minrate 79M -bufsize 80M"
 
-if exist vars (
+if exist vars.cfg (
   set line=1
-  for /f "delims=" %%L in (vars) do (
+  for /f "delims=" %%L in (vars.cfg) do (
     if "!line!"=="1" set "check_updates=%%L"
-    if "!line!"=="2" set "ffmpeg_path=%%L"
-    if "!line!"=="3" set "codec=%%L"
-    if "!line!"=="4" set "RGB_RANGE=%%L"
+    if "!line!"=="2" set "codec=%%L"
+    if "!line!"=="3" set "RGB_RANGE=%%L"
     set /a line+=1
   )
-  if not exist !ffmpeg_path! ( 
-    set "ffmpeg_OLD_path=!ffmpeg_path!" 
-    set "ffmpeg_path=none" 
+) else (
+  if exist vars (
+    set line=1
+    for /f "delims=" %%L in (vars.cfg) do (
+      if "!line!"=="1" set "check_updates=%%L"
+      if "!line!"=="2" set "codec=%%L"
+      if "!line!"=="3" set "RGB_RANGE=%%L"
+      set /a line+=1
+    )
+    del vars
   )
 )
 
 REM Update checker
 if "!check_updates!"=="none" (
-  powershell -c "(New-Object Media.SoundPlayer '%windir%\Media\Windows Foreground.wav').PlaySync()"
   set /p "check_updates=Do you need automated updates? (Y/N) (default: Y): "
   if /i "!check_updates!"=="" set "check_updates=Y"
   if /i "!check_updates!"=="Y" ( set "check_updates=Y" )
@@ -56,122 +63,28 @@ if "!check_updates!"=="Y" (
 )
 
 rem Check if ffmpeg is installed
-if "!ffmpeg_path!"=="none" (
+if "%ffmpeg_path%"=="none" (
   if exist "%ProgramFiles(x86)%\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" (
-    set "ffmpeg_path=%ProgramFiles(x86)%\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe"
+    set ffmpeg_path=%ProgramFiles(x86)%
+    echo Found ffmpeg at: %ffmpeg_path%
   )
-  if "!ffmpeg_path!"=="none" if exist "%ProgramFiles%\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" (
-    set "ffmpeg_path=%ProgramFiles%\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe"
+  if "%ffmpeg_path%"=="none" if exist "%ProgramFiles%\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" (
+    set ffmpeg_path=%ProgramFiles%
+    echo Found ffmpeg at: %ffmpeg_path%
   )
-  if "!ffmpeg_path!"=="none" ( for /f "delims=" %%A in ('where ffmpeg') do ( set "ffmpeg_path=%%A" ) )
-  if "!ffmpeg_path!"=="none" (
+  if "%ffmpeg_path%"=="none" (
+    for /f "delims=" %%A in ('where ffmpeg 2^>nul') do (
+      set ffmpeg_path=%%A
+      echo Found ffmpeg in PATH at: %ffmpeg_path%
+    )
+  )
+  if "%ffmpeg_path%"=="none" (
+    echo FFMPEG not found! Please install FFMPEG to merge.
+    echo You can download FFMPEG from https://ffmpeg.org/download.html or use HLAE FFMPEG installer.
+    echo Press any button to exit.
     powershell -c "(New-Object Media.SoundPlayer '%windir%\Media\Windows Foreground.wav').PlaySync()"
-    set /p "QA=Ffmpeg not found. Have you installed ffmpeg in HLAE installer? (Y/N) (default: Y): "
-    if /i "!QA!"=="" set "QA=Y"
-    if /i "!QA!"=="y" set "QA=Y"
-    if /i "!QA!"=="n" set "QA=N"
-    if /i "!QA!"=="Y" (
-      set /p "QA=Have you installed ffmpeg in custom path? (Y/N) (default: Y): "
-      if /i "!QA!"=="" set "QA=Y"
-      if /i "!QA!"=="Y" (
-        echo Please enter path to ffmpeg.exe or folder with ffmpeg.exe in it:
-        set /p "ffmpeg_path=:"
-        if not exist "!ffmpeg_path!" (
-          if not exist "!ffmpeg_path!\ffmpeg.exe" (
-            if not exist "!ffmpeg_path!\bin\ffmpeg.exe" (
-              echo ffmpeg not found. Please install ffmpeg and add it to your PATH.
-              echo Press any button to exit.
-              pause > nul
-              exit
-              ) else ( set "ffmpeg_path=!ffmpeg_path!\bin\ffmpeg.exe" )
-            ) else ( set "ffmpeg_path=!ffmpeg_path!\ffmpeg.exe" ) )
-        ) else (
-            set /p "QA=Do you want to auto install ffmpeg? (Y/N) (default: Y): "
-            if /i "!QA!"=="" set "QA=Y"
-            if /i "!QA!"=="y" set "QA=Y"
-            if /i "!QA!"=="n" set "QA=N"
-            if /i "!QA!"=="Y" (
-              for /f "delims=" %%A in ('where winget') do ( set "winget_path=%%A" )
-              if "!winget_path!"=="none" (
-                curl -L -s -o winget.msixbundle https://aka.ms/getwinget
-                powershell -ExecutionPolicy Bypass -c "Add-AppxPackage winget.msixbundle"
-                del winget.msixbundle
-                start cmd /k "!winget_path! install ffmpeg --silent --accept-source-agreements --accept-package-agreements --id GyanDude.FFmpeg --source winget"
-                echo ffmpeg installed. Restarting script to start encoding.
-                timeout /t 1 > nul
-                start cmd /k merge.bat %*
-              ) else (
-                echo Installing ffmpeg...
-                start cmd /k "!winget_path! install ffmpeg --silent --accept-source-agreements --accept-package-agreements --id GyanDude.FFmpeg --source winget"
-                echo ffmpeg installed. Restarting script to start encoding.
-                timeout /t 1 > nul
-                start cmd /k merge.bat %*
-              )
-            )
-          )
-      if /i "!QA!"=="N" (
-        set /p "QA=Do you want to auto install ffmpeg? (Y/N) (default: Y): "
-        if /i "!QA!"=="" set "QA=Y"
-        if /i "!QA!"=="y" set "QA=Y"
-        if /i "!QA!"=="n" set "QA=N"
-        if /i "!QA!"=="Y" (
-          for /f "delims=" %%A in ('where winget') do ( set "winget_path=%%A")
-          if "!winget_path!"=="none" (
-            curl -L -s -o winget.msixbundle https://aka.ms/getwinget
-            powershell -ExecutionPolicy Bypass -c "Add-AppxPackage winget.msixbundle"
-            del winget.msixbundle
-            start cmd /k "!winget_path! install ffmpeg --silent --accept-source-agreements --accept-package-agreements --id GyanDude.FFmpeg --source winget"
-            echo ffmpeg installed. Restarting script to start encoding.
-            timeout /t 1 > nul
-            start cmd /k merge.bat %*
-          ) else (
-            echo Installing ffmpeg...
-            start cmd /k "!winget_path! install ffmpeg --silent --accept-source-agreements --accept-package-agreements --id GyanDude.FFmpeg --source winget"
-            echo ffmpeg installed. Restarting script to start encoding.
-            timeout /t 1 > nul
-            start cmd /k merge.bat %*
-          )
-        )
-        if /i "!QA!"=="N" (
-          echo Then go and install ffmpeg all by yourself. I will not help you.
-          echo Or install ffmpeg using HLAE installer, and run script again.
-          echo Press any button to exit.
-          pause > nul
-          exit
-        )
-      )
-    if /i "!QA!"=="N" (
-      set /p "QA=Do you want to auto install ffmpeg? (Y/N) (default: Y): "
-        if /i "!QA!"=="" set "QA=Y"
-        if /i "!QA!"=="y" set "QA=Y"
-        if /i "!QA!"=="n" set "QA=N"
-        if /i "!QA!"=="Y" (
-          for /f "delims=" %%A in ('where winget') do ( set "winget_path=%%A")
-          if "!winget_path!"=="none" (
-            curl -L -s -o winget.msixbundle https://aka.ms/getwinget
-            powershell -ExecutionPolicy Bypass -c "Add-AppxPackage winget.msixbundle"
-            del winget.msixbundle
-            start cmd /k "!winget_path! install ffmpeg --silent --accept-source-agreements --accept-package-agreements --id GyanDude.FFmpeg --source winget"
-            echo ffmpeg installed. Restarting script to start encoding.
-            timeout /t 1 > nul
-            start cmd /k merge.bat %*
-          ) else (
-            echo Installing ffmpeg...
-            start cmd /k "!winget_path! install ffmpeg --silent --accept-source-agreements --accept-package-agreements --id GyanDude.FFmpeg --source winget"
-            echo ffmpeg installed. Restarting script to start encoding.
-            timeout /t 1 > nul
-            start cmd /k merge.bat %*
-          )
-        )
-        if /i "!QA!"=="N" (
-          echo Then go and install ffmpeg all by yourself. I will not help you.
-          echo Or install ffmpeg using HLAE installer, and run script again.
-          echo Press any button to exit.
-          pause > nul
-          exit
-        )
-    )
-    )
+    pause > nul
+    exit /b
   )
 )
 
@@ -198,13 +111,9 @@ if "!codec!"=="none" (
   if "!HW!"=="1" ( set "HW=nvenc" )
   if "!HW!"=="2" ( set "HW=amf" )
   if "!HW!"=="3" ( set "HW=qsv" )
-  if "!HW!"=="4" ( if "!codec!"=="av1" ( 
-      set "codec=libsvtav1" 
-      set "RGB_RANGE=yuv420p"
-    ) 
-  ) else ( if "!HW!" NEQ 4 ( set "codec=!codec!_!HW!" ) else ( set "codec=!codec!" ) )
+  if "!HW!" NEQ "4" ( set "codec=!codec!_!HW!" )
 )
-
+cls
 if "!RGB_RANGE!"=="none" (
   echo "Do you want to use FULL RGB RANGE(yuv444p)? (Y/N) (default: Y):
   set /p "RGB_RANGE=:"
@@ -215,15 +124,15 @@ if "!RGB_RANGE!"=="none" (
   if /i "!RGB_RANGE!"=="n" ( set "RGB_RANGE=yuv420p" )
 )
 
-if "!ffmpeg_path!" NEQ "!ffmpeg_OLD_path!" ( del vars )
-echo %check_updates% >> vars
-echo %ffmpeg_path% >> vars
-echo %codec% >> vars
-echo %RGB_RANGE% >> vars
+if not exist vars.cfg ( 
+echo %check_updates% >> vars.cfg
+echo %codec% >> vars.cfg
+echo %RGB_RANGE% >> vars.cfg
+)
 
 if not exist merged_movies mkdir merged_movies
-
 cls
+
 REM Video and audio merger
 if "%*"=="" (
   echo You NEED to drag and drop folder with your video and audio files into batch file. Press any button to exit.
@@ -232,29 +141,56 @@ if "%*"=="" (
   exit /b
 )
 for %%F in (%*) do ( echo Encoding: %%F
-  if %%F=="clear_vars" (
-    del vars
-    echo Variables cleared. Press any button to exit.
-    powershell -c "(New-Object Media.SoundPlayer '%windir%\Media\Windows Foreground.wav').PlaySync()"
-    pause > nul
-    exit /b
+  if "%codec%"=="hevc_nvenc" ( 
+    set "inputs=-hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset p5" 
+  ) 
+  if "%codec%"=="h264_nvenc" ( 
+    set "inputs=-hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset p5" 
   )
-  for %%A in ("%%F") do set "foldername=%%~nxA"
-  if "!codec!"=="libsvtav1" ("%ffmpeg_path%" -y -hide_banner -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset 6 -b:v 10M -maxrate 10M -bufsize 10M "%%F\..\merged_movies\!foldername!.mp4"
-  ) else if "!codec!"=="hevc_nvenc" if "!codec!"=="h264_nvenc" (
-    "%ffmpeg_path%" -y -hide_banner -hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset p5 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M "%%F\..\merged_movies\!foldername!.mp4"
-  ) else if "!codec!"=="hevc_amf" if "!codec!"=="h264_amf" (
-    "%ffmpeg_path%" -y -hide_banner -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset 5 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M "%%F\..\merged_movies\!foldername!.mp4"
-  ) else if "!codec!"=="hevc_qsv" if "!codec!"=="h264_qsv" (
-    "%ffmpeg_path%" -y -hide_banner -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset 4 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M "%%F\..\merged_movies\!foldername!.mp4"
-  ) else if "!codec!"=="hevc" if "!codec!"=="h264" (
-    "%ffmpeg_path%" -y -hide_banner -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset 5 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M "%%F\..\merged_movies\!foldername!.mp4"
-  ) else (
-    "%ffmpeg_path%" -y -hide_banner -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -map 0:v:0 -map 1:a:0 -b:a 192k -preset 5 -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M "%%F\..\merged_movies\!foldername!.mp4"
+  if "%codec%"=="hevc_amf" ( 
+    set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset 5" 
+  )
+  if "%codec%"=="h264_amf" ( 
+    set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset 5" 
+  )
+  if "%codec%"=="hevc_qsv" ( 
+    set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset 4" 
+  ) 
+  if "%codec%"=="h264_qsv" ( 
+    set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset 4" 
+  )
+  if "%codec%"=="hevc" ( 
+    set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset 5" 
+  )
+  if "%codec%"=="h264" ( 
+    set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset 5" 
+  )
+  if "%codec%"=="libsvtav1" ( 
+    set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset 6" 
+    set "bitrate_params=-b:v 10M -maxrate 10M -bufsize 10M" 
+  )
+  if "%codec%"=="av1_nvenc" ( 
+    set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset 6" 
+    set "bitrate_params=-b:v 10M -maxrate 10M -bufsize 10M" 
+  )
+  if "%codec%"=="av1_amf" ( 
+    set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset 6" 
+    set "bitrate_params=-b:v 10M -maxrate 10M -bufsize 10M" 
+  )
+  if "%codec%"=="av1_qsv" ( 
+    set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset 6" 
+    set "bitrate_params=-b:v 10M -maxrate 10M -bufsize 10M" 
+  )
+  echo Inputs: %inputs%
+  for %%A in ("%%F") do ( set "foldername=%%~nxA" )
+  for %%B in ("%ffmpeg_path%") do ( 
+    if "%%~nxB"=="ffmpeg.exe" ( "%ffmpeg_path%" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 192k %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\!foldername!.mp4"
+    ) else ( "%ffmpeg_path%)\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 192k %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\!foldername!.mp4"
+    )
   )
 )
 endlocal
 echo Everything encoded! Press any button.
 powershell -c "(New-Object Media.SoundPlayer '%windir%\Media\Windows Notify System Generic.wav').PlaySync()"
 pause > nul
-exit /b
+exit
