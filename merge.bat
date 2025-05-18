@@ -1,38 +1,38 @@
-@echo off
+rem @echo off
 setlocal enableextensions enabledelayedexpansion
-set "version=1.2.2"
+set "version=1.2.3"
 set "check_updates=none"
+set "HW=none"
 set "codec=none"
 set "RGB_RANGE=none"
 set "ffmpeg_path=none"
 set "inputs=none"
 set "bitrate_params=-b:v 80M -maxrate 81M -minrate 79M -bufsize 80M"
 
-if exist vars.cfg (
-  set line=1
-  for /f "delims=" %%L in (vars.cfg) do (
-    if "!line!"=="1" set "check_updates=%%L"
-    if "!line!"=="2" set "codec=%%L"
-    if "!line!"=="3" set "RGB_RANGE=%%L"
-    set /a line+=1
+rem commands
+for %%F in (%*) do ( 
+  if "%%~nxF" == "clean_vars" del vars.cfg 
+  if "%%~nxF" == "help" (
+    echo Why?
+    pause > nul
+    exit /b
   )
-) else (
-  if exist vars (
-    set line=1
-    for /f "delims=" %%L in (vars.cfg) do (
-      if "!line!"=="1" set "check_updates=%%L"
-      if "!line!"=="2" set "codec=%%L"
-      if "!line!"=="3" set "RGB_RANGE=%%L"
-      set /a line+=1
-    )
-    del vars
+)
+
+set line=1
+if exist vars.cfg (
+  for /f "delims=" %%L in (vars.cfg) do (
+    if "!line!"=="3" set "check_updates=%%L"
+    if "!line!"=="8" set "codec=%%L"
+    if "!line!"=="12" set "RGB_RANGE=%%L"
+    set /a line+=1
   )
 )
 
 REM Update checker
 if "!check_updates!"=="none" (
   set /p "check_updates=Do you need automated updates? (Y/N) (default: Y): "
-  if /i "!check_updates!"=="" set "check_updates=Y"
+  if /i "!check_updates!"=="none" set "check_updates=Y"
   if /i "!check_updates!"=="Y" ( set "check_updates=Y" )
   if /i "!check_updates!"=="N" ( set "check_updates=N" )
   if /i "!check_updates!"=="y" ( set "check_updates=Y" )
@@ -53,7 +53,7 @@ if "!check_updates!"=="Y" (
       echo Current version: !version!
       echo Downloading new version...
       curl -o merge.bat https://raw.githubusercontent.com/filispeen/HLAE-CS2-CONFIG/refs/heads/main/merge.bat
-      cls
+      rem cls
       echo Update complete. Restarting the script to start encoding.
       timeout /t 1 > nul
       start cmd /k merge.bat %*
@@ -88,8 +88,8 @@ if "%ffmpeg_path%"=="none" (
   )
 )
 
-cls
-rem first codec setup
+rem cls
+rem first setup and only setup unless you delete vars.cfg
 if "!codec!"=="none" (
   echo One time quick setup:
   echo Which codec do you want to use?
@@ -97,7 +97,7 @@ if "!codec!"=="none" (
   echo 2. h264 // not that eficient like hevc and av1, but compatible with everything, but doesn't matter if upload video to youtube just use hevc
   echo 3. av1 // recommended if you have a 40 or above series GPU and don't recommended on CPU
   set /p "codec=:"
-  if "!codec!"=="" set "codec=hevc" 
+  if "!codec!"=="none" set "codec=hevc" 
   if "!codec!"=="1" ( set "codec=hevc" )
   if "!codec!"=="2" ( set "codec=h264" )
   if "!codec!"=="3" ( set "codec=av1" )
@@ -107,31 +107,41 @@ if "!codec!"=="none" (
   echo 3. Intel // qsv codec
   echo 4. don't have a GPU // cpu codec, default
   set /p "HW=:"
-  if /i "!HW!"=="" set "HW=4"
+  if /i "!HW!"=="none" set "HW=4"
   if "!HW!"=="1" ( set "HW=nvenc" )
   if "!HW!"=="2" ( set "HW=amf" )
   if "!HW!"=="3" ( set "HW=qsv" )
   if "!HW!" NEQ "4" ( set "codec=!codec!_!HW!" )
 )
-cls
+rem cls
 if "!RGB_RANGE!"=="none" (
-  echo "Do you want to use FULL RGB RANGE(yuv444p)? (Y/N) (default: Y):
+  echo "Do you want to use FULL RGB RANGE(yuv444p)? (Y/N) (default: Y):"
   set /p "RGB_RANGE=:"
-  if /i "!RGB_RANGE!"=="" set "RGB_RANGE=Y"
+  if /i "!RGB_RANGE!"=="none" set "RGB_RANGE=Y"
   if /i "!RGB_RANGE!"=="Y" ( set "RGB_RANGE=yuv444p" )
   if /i "!RGB_RANGE!"=="N" ( set "RGB_RANGE=yuv420p" )
   if /i "!RGB_RANGE!"=="y" ( set "RGB_RANGE=yuv444p" )
   if /i "!RGB_RANGE!"=="n" ( set "RGB_RANGE=yuv420p" )
 )
 
-if not exist vars.cfg ( 
-echo %check_updates% >> vars.cfg
-echo %codec% >> vars.cfg
-echo %RGB_RANGE% >> vars.cfg
-)
+if exist vars.cfg ( del vars.cfg )
+echo # DO NOT EDIT LINE ORDERS>>vars.cfg
+echo # Y/N: Check for updates (CAPS ONLY)>>vars.cfg
+echo %check_updates%>>vars.cfg
+echo.>>vars.cfg
+echo # string: Video codec (lowercase)>>vars.cfg
+echo # Codec list: hevc(nvenc, amf, qsv) h264(nvenc, amf, qsv) av1(nvenc, amf, qsv) (if you want to use av1 on cpu use libsvtav1)>>vars.cfg
+echo # cpu codec example: hevc, h264, libsvtav1>>vars.cfg
+echo # gpu codec example: hevc_nvenc, h264_nvenc, av1_nvenc, h264_amf, av1_amf, hevc_qsv, h264_qsv, av1_qsv>>vars.cfg
+echo %codec%>>vars.cfg
+echo.>>vars.cfg
+echo # string: pixel format (lowercase)>>vars.cfg
+echo # Pixel format list: yuv420p (worst quality), yuv422p (middle quality), yuv444p (best quality), yuv420p10le, yuv422p10le, yuv444p10le (same but with 10 bit depth)>>vars.cfg
+echo # yuv420p is the most compatible, yuv444p is the best quality>>vars.cfg
+echo %RGB_RANGE%>>vars.cfg
 
 if not exist merged_movies mkdir merged_movies
-cls
+rem cls
 
 REM Video and audio merger
 if "%*"=="" (
@@ -140,7 +150,7 @@ if "%*"=="" (
   pause > nul
   exit /b
 )
-for %%F in (%*) do ( echo Encoding: %%F
+for %%F in (%*) do (
   if "%codec%"=="hevc_nvenc" ( 
     set "inputs=-hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset p5" 
   ) 
@@ -181,11 +191,12 @@ for %%F in (%*) do ( echo Encoding: %%F
     set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset 6" 
     set "bitrate_params=-b:v 10M -maxrate 10M -bufsize 10M" 
   )
-  echo Inputs: %inputs%
-  for %%A in ("%%F") do ( set "foldername=%%~nxA" )
-  for %%B in ("%ffmpeg_path%") do ( 
-    if "%%~nxB"=="ffmpeg.exe" ( "%ffmpeg_path%" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 192k %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\!foldername!.mp4"
-    ) else ( "%ffmpeg_path%)\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 192k %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\!foldername!.mp4"
+  if "%%F" NEQ "clean_vars" (
+    echo Encoding: %%F
+    for %%A in ("%%F") do ( set "foldername=%%~nxA" )
+    for %%B in ("%ffmpeg_path%") do ( 
+      if "%%~nxB"=="ffmpeg.exe" ( "%ffmpeg_path%" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 192k %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\!foldername!.mp4"
+      ) else ( "%ffmpeg_path%)\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 192k %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\!foldername!.mp4" )
     )
   )
 )
