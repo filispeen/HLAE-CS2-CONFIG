@@ -23,7 +23,7 @@ jobs:
           DATE=$(date +'%Y%m%d-%H%M%S')
           TAG="auto-release-${DATE}-${SHORT_SHA}"
           echo "TAG_NAME=$TAG" >> $GITHUB_ENV
-          echo "RELEASE_NAME=Auto release $TAG" >> $GITHUB_ENV
+          echo "RELEASE_NAME=$TAG" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
