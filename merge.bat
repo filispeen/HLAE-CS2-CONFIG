@@ -1,23 +1,15 @@
 @echo off
 setlocal enableextensions enabledelayedexpansion
-set "version=1.2.3"
+set "version=1.2.4"
 set "check_updates=none"
 set "HW=none"
 set "codec=none"
 set "RGB_RANGE=none"
 set "ffmpeg_path=none"
 set "inputs=none"
-set "bitrate_params=-b:v 80M -maxrate 81M -minrate 79M -bufsize 80M"
-
-rem commands
-for %%F in (%*) do ( 
-  if "%%~nxF" == "clean_vars" del vars.cfg 
-  if "%%~nxF" == "help" (
-    echo Why?
-    pause > nul
-    exit /b
-  )
-)
+set "is_func=false"
+set "just_ffmpeg=false"
+set "bitrate_params=-b:a 192k -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M"
 
 set line=1
 if exist vars.cfg (
@@ -53,7 +45,7 @@ if "!check_updates!"=="Y" (
       echo Current version: !version!
       echo Downloading new version...
       curl -o merge.bat https://raw.githubusercontent.com/filispeen/HLAE-CS2-CONFIG/refs/heads/main/merge.bat
-      rem cls
+      cls
       echo Update complete. Restarting the script to start encoding.
       timeout /t 1 > nul
       start cmd /k merge.bat %*
@@ -66,20 +58,19 @@ rem Check if ffmpeg is installed
 if "%ffmpeg_path%"=="none" (
   if exist "%ProgramFiles(x86)%\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" (
     set ffmpeg_path=%ProgramFiles(x86)%
-    echo Found ffmpeg at: %ffmpeg_path%
   )
   if "%ffmpeg_path%"=="none" if exist "%ProgramFiles%\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" (
     set ffmpeg_path=%ProgramFiles%
-    echo Found ffmpeg at: %ffmpeg_path%
   )
   if "%ffmpeg_path%"=="none" (
     for /f "delims=" %%A in ('where ffmpeg 2^>nul') do (
       set ffmpeg_path=%%A
       echo Found ffmpeg in PATH at: %ffmpeg_path%
+      set "just_ffmpeg=true"
     )
   )
   if "%ffmpeg_path%"=="none" (
-    echo FFMPEG not found! Please install FFMPEG to merge.
+    echo FFMPEG not found! Please install FFMPEG.
     echo You can download FFMPEG from https://ffmpeg.org/download.html or use HLAE FFMPEG installer.
     echo Press any button to exit.
     powershell -c "(New-Object Media.SoundPlayer '%windir%\Media\Windows Foreground.wav').PlaySync()"
@@ -93,9 +84,9 @@ rem first setup and only setup unless you delete vars.cfg
 if "!codec!"=="none" (
   echo One time quick setup:
   echo Which codec do you want to use?
-  echo 1. hevc // recommended and default
-  echo 2. h264 // not that eficient like hevc and av1, but compatible with everything, but doesn't matter if upload video to youtube just use hevc
-  echo 3. av1 // recommended if you have a 40 or above series GPU and don't recommended on CPU
+  echo 1. hevc // recommended and set as default option.
+  echo 2. h264 // not that eficient like hevc and av1, but compatible with everything, but doesn't matter if upload video to youtube, just use hevc.
+  echo 3. av1 // recommended if you have a 40 or above series GPU and don't recommended on CPU.
   set /p "codec=:"
   if "!codec!"=="none" set "codec=hevc" 
   if "!codec!"=="1" ( set "codec=hevc" )
@@ -151,6 +142,28 @@ if "%*"=="" (
   exit /b
 )
 for %%F in (%*) do (
+  rem commands
+  if "%%~nxF" == "clean_vars" ( 
+    set "is_func=true"
+    del vars.cfg 
+  )
+  rem moving "merged.mp4" videos to merged_movies renamed to take####.mp4
+  if "%%~nxF" == "transfer_old_fmts" ( 
+    set "is_func=true"
+    for /d %%C in (take*) do (
+      if exist "%~dp0%%C\merged.mp4" (
+        echo Moving %~dp0%%C\merged.mp4 to %~dp0merged_movies as %%C.mp4
+        move "%~dp0%%C\merged.mp4" "%~dp0merged_movies\%%C.mp4"
+      )
+    )
+  )
+  if "%%~nxF" == "clear_takes" ( 
+    set "is_func=true"
+    for /d %%C in (take*) do (
+      echo Removing %%C folder...
+      rmdir /s /q "%%C"
+    )
+  )
   if "%codec%"=="hevc_nvenc" ( 
     set "inputs=-hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset p5" 
   ) 
@@ -190,18 +203,14 @@ for %%F in (%*) do (
   if "%codec%"=="av1_qsv" ( 
     set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset 6" 
     set "bitrate_params=-b:v 10M -maxrate 10M -bufsize 10M" 
-  )
-  if "%%F" NEQ "clean_vars" (
+  ) else ( set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec%" )
+  if "!is_func!" NEQ "true" (
     echo Encoding: %%F
     for %%A in ("%%F") do ( set "foldername=%%~nxA" )
-    for %%B in ("%ffmpeg_path%") do ( 
-      if "%%~nxB"=="ffmpeg.exe" ( "%ffmpeg_path%" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 192k %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\!foldername!.mp4"
-      ) else ( "%ffmpeg_path%)\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 192k %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\!foldername!.mp4" )
-    )
+    if "!just_ffmpeg!"=="true" ( "%ffmpeg_path%" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\!foldername!.mp4"
+    ) else ( "%ffmpeg_path%)\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\!foldername!.mp4" )
   )
+  set "is_func=false"
 )
 endlocal
-echo Everything encoded! Press any button.
 powershell -c "(New-Object Media.SoundPlayer '%windir%\Media\Windows Notify System Generic.wav').PlaySync()"
-pause > nul
-exit
