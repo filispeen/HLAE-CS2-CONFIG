@@ -1,4 +1,4 @@
-rem @echo off
+@echo off
 setlocal enableextensions enabledelayedexpansion
 set "version=1.2.3"
 set "check_updates=none"
@@ -88,7 +88,7 @@ if "%ffmpeg_path%"=="none" (
   )
 )
 
-rem cls
+cls
 rem first setup and only setup unless you delete vars.cfg
 if "!codec!"=="none" (
   echo One time quick setup:
@@ -141,7 +141,7 @@ echo # yuv420p is the most compatible, yuv444p is the best quality>>vars.cfg
 echo %RGB_RANGE%>>vars.cfg
 
 if not exist merged_movies mkdir merged_movies
-rem cls
+cls
 
 REM Video and audio merger
 if "%*"=="" (
