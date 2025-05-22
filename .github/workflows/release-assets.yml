@@ -16,12 +16,14 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v3
 
-      - name: Set up variables
-        id: vars
+      - name: Set up tag and release name
+        id: tagger
         run: |
-          COMMIT_SHA=${{ github.sha }}
-          echo "TAG_NAME=${COMMIT_SHA}" >> $GITHUB_ENV
-          echo "RELEASE_NAME=Auto release for ${COMMIT_SHA}" >> $GITHUB_ENV
+          SHORT_SHA=${GITHUB_SHA::7}
+          DATE=$(date +'%Y%m%d-%H%M%S')
+          TAG="auto-release-${DATE}-${SHORT_SHA}"
+          echo "TAG_NAME=$TAG" >> $GITHUB_ENV
+          echo "RELEASE_NAME=Auto release $TAG" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
