@@ -1,0 +1,32 @@
+name: Auto Release Assets
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+
+      - name: Set up variables
+        id: vars
+        run: |
+          COMMIT_SHA=${{ github.sha }}
+          echo "TAG_NAME=${COMMIT_SHA}" >> $GITHUB_ENV
+          echo "RELEASE_NAME=Auto release for ${COMMIT_SHA}" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: ${{ env.RELEASE_NAME }}
+          files: |
+            merge.bat
+            replay.cfg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
