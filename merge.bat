@@ -206,9 +206,8 @@ for %%F in (%*) do (
   ) else ( set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec%" )
   if "!is_func!" NEQ "true" (
     echo Encoding: %%F
-    for %%A in ("%%F") do ( set "foldername=%%~nxA" )
-    if "!just_ffmpeg!"=="true" ( "%ffmpeg_path%" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\!foldername!.mp4"
-    ) else ( "%ffmpeg_path%)\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\!foldername!.mp4" )
+    if "!just_ffmpeg!"=="true" ( "%ffmpeg_path%" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\%%~nxF.mp4"
+    ) else ( "%ffmpeg_path%)\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\%%~nxF.mp4" )
   )
   set "is_func=false"
 )
