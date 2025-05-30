@@ -1,6 +1,6 @@
 @echo off
 setlocal enableextensions enabledelayedexpansion
-set "version=1.2.4"
+set "version=1.2.5"
 set "check_updates=none"
 set "HW=none"
 set "codec=none"
@@ -9,7 +9,8 @@ set "ffmpeg_path=none"
 set "inputs=none"
 set "is_func=false"
 set "just_ffmpeg=false"
-set "bitrate_params=-b:a 192k -b:v 80M -maxrate 81M -minrate 79M -bufsize 80M"
+set "bitrate_params=-b:v 80M -maxrate 81M -bufsize 160M"
+set "av1_bitrate_params=-b:v 80M -bufsize 160M"
 
 set line=1
 if exist vars.cfg (
@@ -190,24 +191,24 @@ for %%F in (%*) do (
   )
   if "%codec%"=="libsvtav1" ( 
     set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset 6" 
-    set "bitrate_params=-b:v 10M -maxrate 10M -bufsize 10M" 
+    set "bitrate_params=%av1_bitrate_params%" 
   )
   if "%codec%"=="av1_nvenc" ( 
-    set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset 6" 
-    set "bitrate_params=-b:v 10M -maxrate 10M -bufsize 10M" 
+    set "inputs=-hwaccel cuda -i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset 6" 
+    set "bitrate_params=%av1_bitrate_params%" 
   )
   if "%codec%"=="av1_amf" ( 
     set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset 6" 
-    set "bitrate_params=-b:v 10M -maxrate 10M -bufsize 10M" 
+    set "bitrate_params=%av1_bitrate_params%" 
   )
   if "%codec%"=="av1_qsv" ( 
     set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec% -preset 6" 
-    set "bitrate_params=-b:v 10M -maxrate 10M -bufsize 10M" 
+    set "bitrate_params=%av1_bitrate_params%" 
   ) else ( set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec%" )
   if "!is_func!" NEQ "true" (
     echo Encoding: %%F
-    if "!just_ffmpeg!"=="true" ( "%ffmpeg_path%" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\%%~nxF.mp4"
-    ) else ( "%ffmpeg_path%)\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\%%~nxF.mp4" )
+    if "!just_ffmpeg!"=="true" ( "%ffmpeg_path%" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 192k %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\%%~nxF.mp4"
+    ) else ( "%ffmpeg_path%)\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 192k !bitrate_params! -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\%%~nxF.mp4" )
   )
   set "is_func=false"
 )
