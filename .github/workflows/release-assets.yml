@@ -33,5 +33,6 @@ jobs:
           files: |
             merge.bat
             replay.cfg
+            video compressor.bat
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
