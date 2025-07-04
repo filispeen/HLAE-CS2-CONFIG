@@ -12,10 +12,10 @@ echo "Enter target size in Megabytes"
 set /p "target_size_mb=: "
 set /a maxrate_mb=!target_size_mb!
 
-set "codec=hevc_nvenc"
+set "codec=hevc"
 
-set /a target_size_mb-=2
-set /a maxrate_mb-=1
+set /a target_size_mb-=1
+::set /a maxrate_mb-=1
 
 for /f "tokens=*" %%A in ('ffprobe -v error -show_entries format^=duration -of default^=noprint_wrappers^=1:nokey^=1 "%input_file%"') do set "duration=%%A"
 
