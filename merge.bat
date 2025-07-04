@@ -1,10 +1,10 @@
 @echo off
 setlocal enableextensions enabledelayedexpansion
-set "version=1.2.5"
+set "version=1.2.6"
 set "check_updates=none"
 set "HW=none"
 set "codec=none"
-set "RGB_RANGE=none"
+set "RGB_RANGE=yuv420p"
 set "ffmpeg_path=none"
 set "inputs=none"
 set "is_func=false"
@@ -105,16 +105,7 @@ if "!codec!"=="none" (
   if "!HW!"=="3" ( set "HW=qsv" )
   if "!HW!" NEQ "4" ( set "codec=!codec!_!HW!" )
 )
-rem cls
-if "!RGB_RANGE!"=="none" (
-  echo "Do you want to use FULL RGB RANGE(yuv444p)? (Y/N) (default: Y):"
-  set /p "RGB_RANGE=:"
-  if /i "!RGB_RANGE!"=="none" set "RGB_RANGE=Y"
-  if /i "!RGB_RANGE!"=="Y" ( set "RGB_RANGE=yuv444p" )
-  if /i "!RGB_RANGE!"=="N" ( set "RGB_RANGE=yuv420p" )
-  if /i "!RGB_RANGE!"=="y" ( set "RGB_RANGE=yuv444p" )
-  if /i "!RGB_RANGE!"=="n" ( set "RGB_RANGE=yuv420p" )
-)
+cls
 
 if exist vars.cfg ( del vars.cfg )
 echo # DO NOT EDIT LINE ORDERS>>vars.cfg
@@ -207,8 +198,8 @@ for %%F in (%*) do (
   ) else ( set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec%" )
   if "!is_func!" NEQ "true" (
     echo Encoding: %%F
-    if "!just_ffmpeg!"=="true" ( "%ffmpeg_path%" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 192k %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\%%~nxF.mp4"
-    ) else ( "%ffmpeg_path%)\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 192k !bitrate_params! -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\%%~nxF.mp4" )
+    if "!just_ffmpeg!"=="true" ( "%ffmpeg_path%" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 384k %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\%%~nxF.mp4"
+    ) else ( "%ffmpeg_path%)\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 384k !bitrate_params! -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\%%~nxF.mp4" )
   )
   set "is_func=false"
 )
