@@ -1,10 +1,9 @@
 @echo off
 setlocal enableextensions enabledelayedexpansion
-set "version=1.2.6"
+set "version=1.2.7"
 set "check_updates=none"
 set "HW=none"
 set "codec=none"
-set "RGB_RANGE=yuv420p"
 set "ffmpeg_path=none"
 set "inputs=none"
 set "is_func=false"
@@ -16,8 +15,7 @@ set line=1
 if exist vars.cfg (
   for /f "delims=" %%L in (vars.cfg) do (
     if "!line!"=="3" set "check_updates=%%L"
-    if "!line!"=="8" set "codec=%%L"
-    if "!line!"=="12" set "RGB_RANGE=%%L"
+    if "!line!"=="6" set "codec=%%L"
     set /a line+=1
   )
 )
@@ -104,24 +102,22 @@ if "!codec!"=="none" (
   if "!HW!"=="2" ( set "HW=amf" )
   if "!HW!"=="3" ( set "HW=qsv" )
   if "!HW!" NEQ "4" ( set "codec=!codec!_!HW!" )
+  if "!HW!"=="4" ( 
+    if /i "!codec!"=="av1" ( 
+      echo You can't use av1 on CPU, switching to libsvtav1 codec.
+      set "codec=libsvtav1"
+    )
+  )
 )
 cls
 
 if exist vars.cfg ( del vars.cfg )
 echo # DO NOT EDIT LINE ORDERS>>vars.cfg
-echo # Y/N: Check for updates (CAPS ONLY)>>vars.cfg
+echo # Y/N: Check for updates #CAPS ONLY#>>vars.cfg
 echo %check_updates%>>vars.cfg
-echo.>>vars.cfg
-echo # string: Video codec (lowercase)>>vars.cfg
-echo # Codec list: hevc(nvenc, amf, qsv) h264(nvenc, amf, qsv) av1(nvenc, amf, qsv) (if you want to use av1 on cpu use libsvtav1)>>vars.cfg
-echo # cpu codec example: hevc, h264, libsvtav1>>vars.cfg
-echo # gpu codec example: hevc_nvenc, h264_nvenc, av1_nvenc, h264_amf, av1_amf, hevc_qsv, h264_qsv, av1_qsv>>vars.cfg
+echo # string: Video codec lowercase>>vars.cfg
+echo # Codec list: hevc/_nvenc/_amf/_qsv h264/_nvenc/_amf/_qsv, av1/_nvenc/_amf/_qsv #if you want to use av1 on cpu use libsvtav1#>>vars.cfg
 echo %codec%>>vars.cfg
-echo.>>vars.cfg
-echo # string: pixel format (lowercase)>>vars.cfg
-echo # Pixel format list: yuv420p (worst quality), yuv422p (middle quality), yuv444p (best quality), yuv420p10le, yuv422p10le, yuv444p10le (same but with 10 bit depth)>>vars.cfg
-echo # yuv420p is the most compatible, yuv444p is the best quality>>vars.cfg
-echo %RGB_RANGE%>>vars.cfg
 
 if not exist merged_movies mkdir merged_movies
 cls
@@ -198,8 +194,8 @@ for %%F in (%*) do (
   ) else ( set "inputs=-i "%%F\video.mp4" -i "%%F\audio.wav" -c:v %codec%" )
   if "!is_func!" NEQ "true" (
     echo Encoding: %%F
-    if "!just_ffmpeg!"=="true" ( "%ffmpeg_path%" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 384k %bitrate_params% -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\%%~nxF.mp4"
-    ) else ( "%ffmpeg_path%)\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 384k !bitrate_params! -pix_fmt %RGB_RANGE% "%%F\..\merged_movies\%%~nxF.mp4" )
+    if "!just_ffmpeg!"=="true" ( "%ffmpeg_path%" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 384k %bitrate_params% -pix_fmt yuv420p "%%F\..\merged_movies\%%~nxF.mp4"
+    ) else ( "%ffmpeg_path%)\HLAE FFMPEG\ffmpeg\bin\ffmpeg.exe" -y -hide_banner !inputs! -map 0:v:0 -map 1:a:0 -b:a 384k !bitrate_params! -pix_fmt yuv420p "%%F\..\merged_movies\%%~nxF.mp4" )
   )
   set "is_func=false"
 )
